@@ -1,0 +1,57 @@
+from rest_framework import serializers
+from .models import CustomUser, Department, Issue
+
+
+# ──────────────────────────────────────────────
+# 1. Department Serializer
+# ──────────────────────────────────────────────
+class DepartmentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Department
+        fields = ["id", "name", "faculty"]
+
+
+# ──────────────────────────────────────────────
+# 2. User Serializer
+# ──────────────────────────────────────────────
+class UserSerializer(serializers.ModelSerializer):
+    # Show department name instead of just the ID
+    department_name = serializers.CharField(
+        source="department.name", read_only=True
+    )
+
+    class Meta:
+        model = CustomUser
+        fields = ["id", "username", "email", "role", "department", "department_name"]
+
+
+# ──────────────────────────────────────────────
+# 3. Issue Serializer
+# ──────────────────────────────────────────────
+class IssueSerializer(serializers.ModelSerializer):
+    # Show readable names instead of IDs
+    student_name = serializers.CharField(
+        source="student.username", read_only=True
+    )
+    assigned_to_name = serializers.CharField(
+        source="assigned_to.username", read_only=True
+    )
+
+    class Meta:
+        model = Issue
+        fields = [
+            "id",
+            "tracking_number",
+            "student",
+            "student_name",
+            "assigned_to",
+            "assigned_to_name",
+            "category",
+            "description",
+            "supporting_document",
+            "status",
+            "created_at",
+            "updated_at",
+        ]
+        # These fields are auto-generated, user should not set them manually
+        read_only_fields = ["tracking_number", "created_at", "updated_at"]
