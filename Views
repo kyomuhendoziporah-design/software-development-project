@@ -1,0 +1,82 @@
+from rest_framework import viewsets, permissions, status
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from .models import CustomUser, Department, Issue
+from .serializers import UserSerializer, DepartmentSerializer, IssueSerializer
+
+
+# ──────────────────────────────────────────────
+# 1. Department ViewSet
+# ──────────────────────────────────────────────
+class DepartmentViewSet(viewsets.ModelViewSet):
+    """
+    Handles:
+    GET    /api/departments/        → list all departments
+    POST   /api/departments/        → create a department
+    GET    /api/departments/<id>/   → get one department
+    PUT    /api/departments/<id>/   → update a department
+    DELETE /api/departments/<id>/   → delete a department
+    """
+    queryset = Department.objects.all()
+    serializer_class = DepartmentSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+
+# ──────────────────────────────────────────────
+# 2. User ViewSet
+# ──────────────────────────────────────────────
+class UserViewSet(viewsets.ModelViewSet):
+    """
+    Handles:
+    GET    /api/users/        → list all users
+    POST   /api/users/        → register a new user
+    GET    /api/users/<id>/   → get one user
+    PUT    /api/users/<id>/   → update a user
+    DELETE /api/users/<id>/   → delete a user
+    """
+    queryset = CustomUser.objects.all()
+    serializer_class = UserSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+
+# ──────────────────────────────────────────────
+# 3. Issue ViewSet
+# ──────────────────────────────────────────────
+class IssueViewSet(viewsets.ModelViewSet):
+    """
+    Handles:
+    GET    /api/issues/        → list all issues
+    POST   /api/issues/        → submit a new issue
+    GET    /api/issues/<id>/   → get one issue
+    PUT    /api/issues/<id>/   → update an issue
+    DELETE /api/issues/<id>/   → delete an issue
+    """
+    queryset = Issue.objects.all()
+    serializer_class = IssueSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    # Automatically set the student to the logged-in user when submitting
+    def perform_create(self, serializer):
+        serializer.save(student=self.request.user)
+
+    # BONUS: Custom action to update issue status
+    # URL: POST /api/issues/<id>/update_status/
+    @action(detail=True, methods=["post"])
+    def update_status(self, request, pk=None):
+        issue = self.get_object()
+        new_status = request.data.get("status")
+
+        allowed_statuses = ["open", "assigned", "in_review", "resolved", "closed"]
+
+        if new_status not in allowed_statuses:
+            return Response(
+                {"error": f"Invalid status. Choose from: {allowed_statuses}"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        issue.status = new_status
+        issue.save()
+        return Response(
+            {"message": f"Status updated to '{new_status}'"},
+            status=status.HTTP_200_OK,
+        )
